@@ -32,8 +32,9 @@ public class Test_cl {
         System.out.println("Hello LWJGL " + Version.getVersion() + "!");
 
         init();
-        //init_cl();
-        loop();
+        init_cl();
+        
+        //loop();
 
         // Free the window callbacks and destroy the window
         glfwFreeCallbacks(window);
@@ -46,7 +47,8 @@ public class Test_cl {
 
     private void init_cl() {
         System.out.println("Init opencl!");
-        cl_manager cl_mnger;
+        cl_manager cl_mnger = new cl_manager();
+        cl_mnger.run();
         System.out.println("Done opencl!");
     }
     

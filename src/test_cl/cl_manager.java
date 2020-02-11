@@ -67,7 +67,7 @@ public class cl_manager {
     private long clPlatform;
     private CLCapabilities clPlatformCapabilities;
     private long resultMemory;
-    private static final int size = 100;
+    private static final int size = 4096;
   
     public cl_manager(){
     }
@@ -86,7 +86,7 @@ public class cl_manager {
      * @param buffer - the float buffer to print to System.out
      */
     static void print(FloatBuffer buffer) {
-        for (int i = 0; i < buffer.capacity(); i++) {
+        for (int i = 0; i < Math.min(buffer.capacity(),100); i++) {
             System.out.print(buffer.get(i)+" ");
         }
         System.out.println("");
@@ -107,7 +107,7 @@ public class cl_manager {
         StringBuilder sb = new StringBuilder();
         String line;
         while ((line = br.readLine()) != null) {
-            sb.append(line);
+            sb.append(line+"\n");
         }
         return sb.toString();
     }
@@ -131,7 +131,7 @@ public class cl_manager {
         try {
             programSource = getResourceAsString(filePath);
             sumProgram = CL10.clCreateProgramWithSource(clContext, programSource, errcode_ret);
-            System.out.println(programSource);
+            //System.out.println(programSource);
         } catch (IOException ex) {
             Logger.getLogger(cl_manager.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -166,6 +166,7 @@ public class cl_manager {
         clSetKernelArg1p(clKernel, 2, resultMemory);
         clSetKernelArg1i(clKernel, 3, size);
 
+        FloatBuffer resultBuff = BufferUtils.createFloatBuffer(size);
 
         final int dimensions = 1;
         PointerBuffer globalWorkSize = BufferUtils.createPointerBuffer(dimensions); // In here we put the total number
@@ -178,12 +179,17 @@ public class cl_manager {
         errcode = clEnqueueNDRangeKernel(clQueue, clKernel, dimensions, null, globalWorkSize, null,
             null, null);
 
+        
+        // We read the buffer in blocking mode so that when the method returns we know that the result
+        // buffer is full
+        clEnqueueReadBuffer(clQueue, resultMemory, true, 0, resultBuff, null, null);
+        
         long endTime = System.nanoTime();
         long timeElapsed = endTime - startTime;
         System.out.println("Execution time in nanoseconds  : " + timeElapsed);
 
         //clEnqueueReadBuffer(clQueue, answerMem, 1, 0, answer, null, null);
-        printResults();
+        print(resultBuff);
 
         CL10.clFinish(clQueue);
 
@@ -191,18 +197,6 @@ public class cl_manager {
         System.out.println("run end");
     }
 
-    private void printResults() {
-        // This reads the result memory buffer
-        FloatBuffer resultBuff = BufferUtils.createFloatBuffer(size);
-        // We read the buffer in blocking mode so that when the method returns we know that the result
-        // buffer is full
-        clEnqueueReadBuffer(clQueue, resultMemory, true, 0, resultBuff, null, null);
-        // Print the values in the result buffer
-        for (int i = 0; i < resultBuff.capacity(); i++) {
-          System.out.println("result at " + i + " = " + resultBuff.get(i));
-        }
-        // This should print out 100 lines of result floats, each being 99.
-    }
   
   private void createMemory() {
     // Create OpenCL memory object containing the first buffer's list of numbers
